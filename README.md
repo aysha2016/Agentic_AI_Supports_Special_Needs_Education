@@ -11,6 +11,44 @@ This project is a small, runnable demo of agentic AI supports for learners with 
 - Word highlighting and replay controls in the Streamlit interface.
 - Visual simulation placeholder for concept learning scenes.
 
+## System Architecture
+
+```mermaid
+graph TB
+    UI[Streamlit Web Interface]
+    Agent[Agent Orchestration Layer]
+    SR[Speech Recognition Module]
+    PT[Predictive Text Module]
+    SC[Spelling Correction Module]
+    TTS[Text-to-Speech Module]
+    VS[Visual Simulations Module]
+    
+    UI -->|Audio Input| Agent
+    Agent -->|Synthetic Audio| SR
+    SR -->|Transcript| Agent
+    Agent -->|Token IDs| PT
+    PT -->|Suggestions| Agent
+    Agent -->|Text| SC
+    SC -->|Corrected Text| Agent
+    Agent -->|Text| TTS
+    TTS -->|Audio Output| UI
+    Agent -->|Request Scene| VS
+    VS -->|Visual Content| UI
+    UI -->|Word Highlighting & Controls| UI
+    
+    style Agent fill:#4a90e2,color:#fff
+    style UI fill:#50c878,color:#fff
+```
+
+**Component Overview:**
+
+- **Speech Recognition Module**: Converts synthetic audio into text using a toy CNN-BiGRU model
+- **Predictive Text Module**: Uses a small LSTM to suggest next words based on context
+- **Spelling Correction Module**: Detects and corrects errors using lexicon-based matching
+- **Text-to-Speech Module**: Produces human voice audio via Google TTS API
+- **Visual Simulations Module**: Provides interactive concept learning scenes
+- **Agent Orchestration Layer**: Coordinates all modules and manages data flow
+
 ## Requirements
 
 - Python 3.10+
