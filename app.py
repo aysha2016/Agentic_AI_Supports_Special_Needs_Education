@@ -6,6 +6,7 @@ import streamlit as st
 
 from src.agentic_ai import LearningAgent
 from src.utils.config import AppConfig
+from src.visuals.simulations import FractionBar, get_preset_fraction, compare_fractions
 
 
 @st.cache_resource
@@ -81,28 +82,86 @@ def main() -> None:
     transcript = st.session_state.get("last_transcript", "")
     if not transcript:
         st.info("Run the demo to generate a transcript for highlighting.")
-        return
+    else:
+        words = transcript.split()
+        highlight_area = st.empty()
 
-    words = transcript.split()
-    highlight_area = st.empty()
+        def render_highlight(active_index: int) -> None:
+            rendered = []
+            for idx, word in enumerate(words):
+                if idx == active_index:
+                    rendered.append(f"<span style='background:#ffe08a;padding:2px 6px;border-radius:6px;'>{word}</span>")
+                else:
+                    rendered.append(word)
+            highlight_area.markdown(" ".join(rendered), unsafe_allow_html=True)
 
-    def render_highlight(active_index: int) -> None:
-        rendered = []
-        for idx, word in enumerate(words):
-            if idx == active_index:
-                rendered.append(f"<span style='background:#ffe08a;padding:2px 6px;border-radius:6px;'>{word}</span>")
-            else:
-                rendered.append(word)
-        highlight_area.markdown(" ".join(rendered), unsafe_allow_html=True)
+        col_play, col_replay = st.columns(2)
+        play = col_play.button("Play highlight")
+        replay = col_replay.button("Replay highlight")
+        if play or replay:
+            delay = 1.0 / playback_speed
+            for idx in range(len(words)):
+                render_highlight(idx)
+                time.sleep(delay)
 
-    col_play, col_replay = st.columns(2)
-    play = col_play.button("Play highlight")
-    replay = col_replay.button("Replay highlight")
-    if play or replay:
-        delay = 1.0 / playback_speed
-        for idx in range(len(words)):
-            render_highlight(idx)
-            time.sleep(delay)
+    st.divider()
+    st.subheader("Interactive Fraction Visualization")
+    st.write("Visual aids help learners grasp abstract math concepts through concrete representations.")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.write("**Fraction 1**")
+        preset1 = st.selectbox("Choose preset", ["half", "quarter", "third", "two-thirds"], key="preset1")
+        frac1 = get_preset_fraction(preset1)
+        
+        numerator1 = st.slider("Numerator", 0, 8, frac1.numerator, key="num1")
+        denominator1 = st.slider("Denominator", 1, 8, frac1.denominator, key="den1")
+        frac1 = FractionBar(numerator1, denominator1, "#4a90e2")
+        
+        # Render fraction bar
+        filled = frac1.filled_parts
+        total = frac1.total_parts
+        bar_html = "<div style='display:flex;gap:2px;margin:10px 0;'>"
+        for i in range(total):
+            color = frac1.color if i < filled else "#e0e0e0"
+            bar_html += f"<div style='width:40px;height:60px;background:{color};border:2px solid #333;border-radius:4px;'></div>"
+        bar_html += "</div>"
+        st.markdown(bar_html, unsafe_allow_html=True)
+        st.write(f"**{frac1.to_text()}** = {frac1.value:.2f}")
+    
+    with col2:
+        st.write("**Fraction 2**")
+        preset2 = st.selectbox("Choose preset", ["half", "quarter", "third", "two-thirds"], key="preset2", index=1)
+        frac2 = get_preset_fraction(preset2)
+        
+        numerator2 = st.slider("Numerator", 0, 8, frac2.numerator, key="num2")
+        denominator2 = st.slider("Denominator", 1, 8, frac2.denominator, key="den2")
+        frac2 = FractionBar(numerator2, denominator2, "#50c878")
+        
+        # Render fraction bar
+        filled = frac2.filled_parts
+        total = frac2.total_parts
+        bar_html = "<div style='display:flex;gap:2px;margin:10px 0;'>"
+        for i in range(total):
+            color = frac2.color if i < filled else "#e0e0e0"
+            bar_html += f"<div style='width:40px;height:60px;background:{color};border:2px solid #333;border-radius:4px;'></div>"
+        bar_html += "</div>"
+        st.markdown(bar_html, unsafe_allow_html=True)
+        st.write(f"**{frac2.to_text()}** = {frac2.value:.2f}")
+    
+    # Comparison
+    comparison = compare_fractions(frac1, frac2)
+    st.info(f"**Comparison:** {comparison}")
+    
+    # Audio feedback
+    if st.button("🔊 Speak fractions"):
+        agent = load_agent()
+        config = AppConfig()
+        text = f"{frac1.to_spoken_text()} compared to {frac2.to_spoken_text()}. {comparison}"
+        waveform = agent.tts.synthesize(text)
+        audio_bytes = waveform_to_wav_bytes(waveform, config.sample_rate_hz, normalize_audio, target_peak)
+        st.audio(audio_bytes, format="audio/wav")
 
 
 if __name__ == "__main__":
