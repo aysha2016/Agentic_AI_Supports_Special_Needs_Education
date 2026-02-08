@@ -59,13 +59,9 @@ def main() -> None:
         audio_pcm = agent.speech.dummy_audio_for_phrase("speech to text")
         result = agent.support_session(audio_pcm)
         suggestions_text = agent.predictive.decode_ids(result.suggestions)
-        tts_waveform = agent.tts.synthesize(result.corrected)
-        tts_wav = waveform_to_wav_bytes(
-            tts_waveform,
-            config.sample_rate_hz,
-            normalize_audio,
-            target_peak,
-        )
+        
+        # Get MP3 audio directly from TTS
+        tts_mp3 = agent.tts.real_tts.synthesize_to_mp3_bytes(result.corrected)
         st.session_state["last_transcript"] = result.transcript
 
         st.subheader("Results")
@@ -73,8 +69,8 @@ def main() -> None:
         st.write("Suggestions:", result.suggestions)
         st.write("Suggestions decoded:", suggestions_text)
         st.write("Corrected:", result.corrected)
-        st.write("TTS length:", result.audio_len)
-        st.audio(tts_wav, format="audio/wav")
+        st.write("TTS length:", len(tts_mp3))
+        st.audio(tts_mp3, format="audio/mp3")
         st.write("Visual scene:", result.scene_title)
 
     st.subheader("Word Highlighting")
@@ -157,11 +153,9 @@ def main() -> None:
     # Audio feedback
     if st.button("🔊 Speak fractions"):
         agent = load_agent()
-        config = AppConfig()
         text = f"{frac1.to_spoken_text()} compared to {frac2.to_spoken_text()}. {comparison}"
-        waveform = agent.tts.synthesize(text)
-        audio_bytes = waveform_to_wav_bytes(waveform, config.sample_rate_hz, normalize_audio, target_peak)
-        st.audio(audio_bytes, format="audio/wav")
+        audio_mp3 = agent.tts.real_tts.synthesize_to_mp3_bytes(text)
+        st.audio(audio_mp3, format="audio/mp3")
 
 
 if __name__ == "__main__":
